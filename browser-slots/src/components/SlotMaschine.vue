@@ -42,7 +42,9 @@ export default {
       cols: 5,
       reels: [],
       symbols: ["🍒", "🍋", "🍉", "⭐", "🔔"],
-      symbolWeights: [0.25, 0.25, 0.25, 0.15, 0.10], // Früchte: 20%, Stern: 20%, Glocke: 15%
+      //symbolWeights: [0.25, 0.25, 0.25, 0.15, 0.10], // Früchte: 25%, Stern: 15%, Glocke: 10%
+      //symbolWeights: [0.15, 0.15, 0.15, 0.30, 0.25], // big win chance
+      symbolWeights: [0.27, 0.27, 0.27, 0.09, 0.10],
       message: "",
       isSpinning: false,
       showLines: false,
@@ -61,11 +63,15 @@ export default {
       lineColors: [],
       winChanceMultiplier: 1,
       visibleLines: [],
+      spinSound: null, // Für Scroll-Sound
+      winSound: null,
+      bigWinSound: null,  // Für Gewinn-Sound
     };
   },
   created() {
     this.initializeReels();
     this.initializeLineColors();
+    this.loadSounds();
   },
   mounted() {
     window.addEventListener("keydown", this.handleKeyDown);
@@ -101,6 +107,18 @@ export default {
       }
       return color;
     },
+    loadSounds() {
+      // Lädt die Sounddateien
+      this.spinSound = new Audio("/sounds/spin.mp3");
+      this.winSound = new Audio("/sounds/win.mp3");
+      this.bigWinSound = new Audio("/sounds/bigWin.mp3");
+    },
+    playSound(sound) {
+      if (sound) {
+        sound.currentTime = 0; // Zurücksetzen auf den Start
+        sound.play();
+      }
+    },
     spin() {
       if (this.showLines) {
         this.showLines = false;
@@ -114,11 +132,13 @@ export default {
       this.winningPositions = [];
       this.visibleLines = [];
 
-      const spinDuration = 500;
+      const spinDuration = 1000;
+      this.playSound(this.spinSound);
       const interval = setInterval(() => {
         this.reels = Array.from({ length: this.rows }, () =>
           Array.from({ length: this.cols }, () => this.getRandomSymbol())
         );
+        //this.playSound(this.spinSound);
       }, 100);
 
       setTimeout(() => {
@@ -128,9 +148,14 @@ export default {
         );
 
         const win = this.checkWin();
-        if (win > 0) {
+        if (win > 400) {
+          this.balance += win;
+          this.message = `Jackpot: $${win}`;
+          this.playSound(this.bigWinSound);
+        } else if(win > 0) {
           this.balance += win;
           this.message = `Gewonnen: $${win}`;
+          this.playSound(this.winSound);
         } else {
           this.message = "Kein Gewinn!";
         }
